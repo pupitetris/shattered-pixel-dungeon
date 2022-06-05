@@ -27,6 +27,7 @@ import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.effects.TargetedCell;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.input.ControllerHandler;
@@ -50,6 +51,10 @@ public class CellSelector extends ScrollArea {
 	
 	private float dragThreshold;
 	
+	// For crosshairs selection, which uses keyboard or gamepad.
+	private static TargetedCell crossSelectingTarget;
+	private int crossPos;
+
 	public CellSelector( DungeonTilemap map ) {
 		super( map );
 		camera = map.camera();
@@ -58,6 +63,10 @@ public class CellSelector extends ScrollArea {
 		
 		mouseZoom = camera.zoom;
 		KeyEvent.addKeyListener( keyListener );
+
+		crossSelectingTarget = new TargetedCell( -1, 0x00FF00 );
+		crossSelectingTarget.setFixed (true);
+		crossSelectingTarget.visible = false;
 	}
 	
 	private float mouseZoom;
@@ -144,6 +153,9 @@ public class CellSelector extends ScrollArea {
 	}
 	
 	public void select( int cell, int button ) {
+		if (crossSelecting)
+			setCrossSelecting (false);
+			
 		if (enabled && Dungeon.hero.ready && !GameScene.interfaceBlockingHero()
 				&& listener != null && cell != -1) {
 
@@ -239,6 +251,24 @@ public class CellSelector extends ScrollArea {
 		
 	}
 
+	// for keyboard and gamepad selection
+	private boolean crossSelecting = false;
+	
+	private void setCrossSelecting(boolean selecting) {
+		if (selecting) {
+			if (Dungeon.hero.sprite.parent != null) {
+				Dungeon.hero.sprite.parent.addToFront(crossSelectingTarget);
+			}
+			crossSelectingTarget.visible = true;
+			crossPos = Dungeon.hero.pos;
+			crossSelectingTarget.setPos(crossPos);
+			crossSelecting = true;
+		} else {
+			crossSelectingTarget.remove();
+			crossSelecting = false;
+		}
+	}
+				
 	//used for movement
 	private GameAction heldAction1 = SPDAction.NONE;
 	private GameAction heldAction2 = SPDAction.NONE;
@@ -249,8 +279,14 @@ public class CellSelector extends ScrollArea {
 	//note that delay starts ticking down on the frame it is processed
 	// so in most cases the actual wait is 50-58ms
 	private static final float INITIAL_DELAY = 0.06f;
+
+	private void initHeldDelay () {
+		heldDelay = INITIAL_DELAY;
+		if (crossSelecting)
+			heldDelay *= 4f;
+	}
+
 	private boolean delayingForRelease = false;
-	
 	private Signal.Listener<KeyEvent> keyListener = new Signal.Listener<KeyEvent>() {
 		@Override
 		public boolean onSignal(KeyEvent event) {
@@ -266,6 +302,16 @@ public class CellSelector extends ScrollArea {
 					zoom( camera.zoom-1 );
 					mouseZoom = camera.zoom;
 					return true;
+
+				} else if (action == SPDAction.SELECT_START) {
+					setCrossSelecting(!crossSelecting);
+					return true;
+
+				} else if (action == SPDAction.SELECT_END) {
+					if (crossSelecting) {
+						select(crossPos, PointerEvent.LEFT);
+						return true;
+					}
 				}
 				
 				if (heldAction1 != SPDAction.NONE && heldAction1 == action) {
@@ -302,7 +348,7 @@ public class CellSelector extends ScrollArea {
 					delayingForRelease = true;
 					//in case more keys are being released
 					//note that this delay can tick down while the hero is moving
-					heldDelay = INITIAL_DELAY;
+					initHeldDelay ();
 				}
 
 			} else if (directionFromAction(action) != 0) {
@@ -311,7 +357,7 @@ public class CellSelector extends ScrollArea {
 				lastCellMoved = -1;
 				if (heldAction1 == SPDAction.NONE){
 					heldAction1 = action;
-					heldDelay = INITIAL_DELAY;
+					initHeldDelay ();
 					delayingForRelease = false;
 				} else if (heldAction2 == SPDAction.NONE){
 					heldAction2 = action;
@@ -344,7 +390,7 @@ public class CellSelector extends ScrollArea {
 
 		if (newLeftStick != leftStickAction){
 			if (leftStickAction == SPDAction.NONE){
-				heldDelay = INITIAL_DELAY;
+				initHeldDelay ();
 				Dungeon.hero.resting = false;
 			} else if (newLeftStick == SPDAction.NONE && heldDelay > 0f){
 				heldDelay = 0f;
@@ -369,6 +415,13 @@ public class CellSelector extends ScrollArea {
 
 	private boolean moveFromActions(GameAction... actions){
 		if (Dungeon.hero == null || !Dungeon.hero.ready){
+			return false;
+		}
+
+		if (crossSelecting) {
+			for (GameAction action : actions)
+				crossPos += directionFromAction(action);
+			crossSelectingTarget.setPos(crossPos);
 			return false;
 		}
 
@@ -452,6 +505,9 @@ public class CellSelector extends ScrollArea {
 	
 	public void cancel() {
 		
+		if (crossSelecting)
+			setCrossSelecting (false);
+
 		if (listener != null) {
 			listener.onSelect( null );
 		}
