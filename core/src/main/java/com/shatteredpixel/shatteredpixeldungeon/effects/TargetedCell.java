@@ -29,25 +29,36 @@ import com.watabou.noosa.Image;
 public class TargetedCell extends Image {
 
 	private float alpha;
+	private boolean fixed;
 
 	public TargetedCell( int pos, int color ) {
 		super(Icons.get(Icons.TARGET));
 		hardlight(color);
-
 		origin.set( width/2f );
-
-		point( DungeonTilemap.tileToWorld( pos ) );
-
+		setPos(pos);
 		alpha = 1f;
+		fixed = false;
+	}
+
+	public void setPos( int pos ) {
+		if (pos >= 0) {
+			point( DungeonTilemap.tileToWorld( pos ) );
+		}
+	}
+
+	public void setFixed( boolean isFixed ) {
+		fixed = isFixed;
 	}
 
 	@Override
 	public void update() {
-		if ((alpha -= Game.elapsed/2f) > 0) {
-			alpha( alpha );
-			scale.set( alpha );
-		} else {
-			killAndErase();
+		if (!fixed) {
+			if ((alpha -= Game.elapsed/2f) > 0) {
+				alpha( alpha );
+				scale.set( alpha );
+			} else {
+				killAndErase();
+			}
 		}
 	}
 }
