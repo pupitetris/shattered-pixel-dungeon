@@ -54,6 +54,8 @@ public class SPDAction extends GameAction {
 	public static final GameAction SW           = new SPDAction("sw");
 	public static final GameAction SE           = new SPDAction("se");
 	public static final GameAction WAIT         = new SPDAction("wait");
+	public static final GameAction SELECT_START = new SPDAction("select_start");
+	public static final GameAction SELECT_END   = new SPDAction("select_end");
 
 	public static final GameAction INVENTORY    = new SPDAction("inventory");
 	public static final GameAction QUICKSLOT_1  = new SPDAction("quickslot_1");
@@ -100,6 +102,8 @@ public class SPDAction extends GameAction {
 		defaultBindings.put( Input.Keys.S,              SPDAction.S );
 		defaultBindings.put( Input.Keys.D,              SPDAction.E );
 		defaultBindings.put( Input.Keys.SPACE,          SPDAction.WAIT );
+		defaultBindings.put( Input.Keys.PERIOD,         SPDAction.SELECT_START );
+		defaultBindings.put( Input.Keys.COMMA,          SPDAction.SELECT_END );
 
 		defaultBindings.put( Input.Keys.UP,             SPDAction.N );
 		defaultBindings.put( Input.Keys.LEFT,           SPDAction.W );
