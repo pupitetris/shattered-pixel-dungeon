@@ -29,7 +29,9 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.effects.TargetedCell;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
+import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.input.ControllerHandler;
 import com.watabou.input.GameAction;
 import com.watabou.input.KeyBindings;
@@ -137,6 +139,10 @@ public class CellSelector extends ScrollArea {
 	private float zoom( float value ) {
 
 		value = GameMath.gate( PixelScene.minZoom, value, PixelScene.maxZoom );
+
+		if (camera.zoom != value)
+			GLog.i(Messages.get(this, "zoom", value));
+
 		SPDSettings.zoom((int) (value - PixelScene.defaultZoom));
 		camera.zoom( value );
 
